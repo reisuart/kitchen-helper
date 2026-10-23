@@ -1,0 +1,1 @@
+{"name":"kitchen-helper","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","dev":"node server.js"}}
