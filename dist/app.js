@@ -80,4 +80,4 @@ async function loadCloud(){
  }
  render();notify();
 }
-render();const saved=JSON.parse(localStorage.getItem('kitchen-connection')||'null'),cfg=window.KITCHEN_CONFIG;if(saved||cfg?.supabaseUrl)initCloud(saved||{url:cfg.supabaseUrl,key:cfg.supabaseKey});else notify();setInterval(()=>{if(!client||user)notify()},60000);
+render();const saved=JSON.parse(localStorage.getItem('kitchen-connection')||'null'),cfg=window.KITCHEN_CONFIG;if(cfg?.supabaseUrl&&cfg?.supabaseKey)initCloud({url:cfg.supabaseUrl,key:cfg.supabaseKey});else if(saved)initCloud(saved);else notify();setInterval(()=>{if(!client||user)notify()},60000);
