@@ -1,0 +1,13 @@
+{
+  "id": "./",
+  "name": "Kitchen Helper",
+  "short_name": "Kitchen",
+  "start_url": "./?source=homescreen",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111713",
+  "theme_color": "#171e18",
+  "icons": [
+    { "src": "app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
