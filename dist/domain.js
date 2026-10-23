@@ -3,9 +3,22 @@ export function addDays(date,n){const d=new Date(date+'T12:00:00');d.setDate(d.g
 export const daysUntil=d=>Math.round((new Date(d+'T12:00:00')-new Date(today()+'T12:00:00'))/86400000);
 export const norm=s=>s.trim().toLowerCase();
 export function shopping(state,start,end){
- const stock=state.inventory.map(x=>({...x,quantity:Number(x.quantity)})).sort((a,b)=>a.expiry.localeCompare(b.expiry));const missing=new Map();
- for(const p of [...state.plan].filter(p=>p.date>=start&&p.date<=end).sort((a,b)=>a.date.localeCompare(b.date))){const meal=state.meals.find(m=>m.id===p.mealId);if(!meal)continue;
- for(const ing of meal.ingredients){let need=ing.quantity*p.servings/meal.servings;const key=norm(ing.name)+'|'+ing.unit;for(const item of stock){if(item.expiry<p.date||item.unit!==ing.unit)continue;const match=ing.group?item.category===ing.name:norm(item.name)===norm(ing.name);if(match){const use=Math.min(need,item.quantity);need-=use;item.quantity-=use}if(need<=0)break}if(need>.0001){const old=missing.get(key);missing.set(key,{name:ing.name,unit:ing.unit,quantity:need+(old?.quantity||0),group:ing.group})}}
- }return [...missing.values()];
+ const stock=state.inventory.map(x=>({...x,quantity:Number(x.quantity)})).sort((a,b)=>a.expiry.localeCompare(b.expiry));
+ const missing=new Map(),unmeasured=[];
+ const matches=(item,ing)=>ing.group?item.category===ing.name:norm(item.name)===norm(ing.name);
+ for(const p of [...state.plan].filter(p=>p.date>=start&&p.date<=end).sort((a,b)=>a.date.localeCompare(b.date))){
+  const meal=state.meals.find(m=>m.id===p.mealId);if(!meal)continue;
+  for(const ing of meal.ingredients){
+   if(ing.quantity==null||ing.quantity===''){unmeasured.push({ing,date:p.date});continue}
+   let need=ing.quantity*p.servings/meal.servings;const key=norm(ing.name)+'|'+ing.unit;
+   for(const item of stock){if(item.expiry<p.date||item.unit!==ing.unit||!matches(item,ing))continue;const use=Math.min(need,item.quantity);need-=use;item.quantity-=use;if(need<=0)break}
+   if(need>.0001){const old=missing.get(key);missing.set(key,{name:ing.name,unit:ing.unit,quantity:need+(old?.quantity||0),group:ing.group})}
+  }
+ }
+ // Unknown amounts cannot be deducted from stock or treated as fully covered.
+ // Check availability after reserving stock for all measured recipe amounts.
+ const review=new Map();
+ for(const {ing,date} of unmeasured){const key=(ing.group?'group:':'food:')+norm(ing.name);const old=review.get(key);const available=stock.some(item=>item.quantity>0&&item.expiry>=date&&matches(item,ing));review.set(key,{name:ing.name,unit:'',quantity:null,group:ing.group,unquantified:true,available:available&&(old?.available??true)})}
+ return [...missing.values(),...review.values()];
 }
 export function seed(){return {inventory:[{id:'i1',name:'Cherry tomatoes',quantity:400,unit:'g',category:'Vegetables',expiry:addDays(today(),2),location:'Fridge',emoji:'🍅'},{id:'i2',name:'Greek yogurt',quantity:500,unit:'g',category:'Dairy',expiry:addDays(today(),3),location:'Fridge',emoji:'🥛'},{id:'i3',name:'Spinach',quantity:200,unit:'g',category:'Vegetables',expiry:addDays(today(),1),location:'Fridge',emoji:'🥬'},{id:'i4',name:'Pasta',quantity:500,unit:'g',category:'Carbs',expiry:addDays(today(),180),location:'Pantry',emoji:'🍝'},{id:'i5',name:'Chickpeas',quantity:400,unit:'g',category:'Protein',expiry:addDays(today(),100),location:'Pantry',emoji:'🫘'}],meals:[{id:'m1',name:'Mediterranean bowl',emoji:'🥗',servings:2,tags:'vegetarian',ingredients:[{name:'Carbs',quantity:160,unit:'g',group:true},{name:'Cherry tomatoes',quantity:200,unit:'g'},{name:'Chickpeas',quantity:240,unit:'g'}]},{id:'m2',name:'Creamy spinach pasta',emoji:'🍝',servings:2,tags:'vegetarian, dairy, gluten',ingredients:[{name:'Pasta',quantity:180,unit:'g'},{name:'Spinach',quantity:200,unit:'g'},{name:'Cream',quantity:100,unit:'ml'}]},{id:'m3',name:'Lemon chicken & grains',emoji:'🍋',servings:2,tags:'chicken',ingredients:[{name:'Chicken',quantity:300,unit:'g'},{name:'Carbs',quantity:160,unit:'g',group:true},{name:'Lemon',quantity:1,unit:'pcs'}]}],plan:[],preferences:[{name:'Me',diet:'',avoid:'',notes:''},{name:'Husband',diet:'',avoid:'',notes:''}],checks:[],notifyDays:3}}
